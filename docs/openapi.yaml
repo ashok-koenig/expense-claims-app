@@ -1,0 +1,459 @@
+openapi: 3.1.0
+info:
+  title: Expense Claims API
+  version: 0.1.0
+  description: |
+    JSON API for submitting and managing expense claims, with USD conversion and approval tiers.
+
+    Claims are stored in memory and are lost when the server restarts.
+
+    **Errors.** Every error response has the shape `{ "error": { "message": "...", "details": [...] } }`.
+    `details` is present only on validation failures (400). Requests to any unknown route also
+    return a 404 in this shape (`Route not found: <METHOD> <path>`).
+
+    **Derived fields.** `amountUSD` and `approvalTier` are computed by the server from
+    `data/exchange-rates.json`. They are ignored if sent in a request body, as are any other unknown fields.
+servers:
+  - url: http://localhost:3000/api
+    description: Local development (the port is set by the PORT environment variable)
+tags:
+  - name: Claims
+    description: Create, read, update and delete expense claims.
+  - name: Rates
+    description: Currency conversion using the local exchange-rates file.
+
+paths:
+  /claims:
+    get:
+      tags: [Claims]
+      operationId: listClaims
+      summary: List all claims
+      responses:
+        '200':
+          description: All claims in insertion order; an empty array when there are none.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Claim'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Claims]
+      operationId: submitClaim
+      summary: Submit a claim
+      description: |
+        Creates a claim. `status` cannot be set by the client; new claims are always `submitted`. The server derives
+        `amountUSD` and `approvalTier`; both are `null` when the currency is not in the rates file
+        (the claim is still accepted).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimInput'
+            example:
+              employeeName: Ann
+              description: Hotel
+              category: lodging
+              projectCode: PRJ-42
+              costCenter: CC-1001
+              notes: Conference stay
+              amount: 250
+              currency: eur
+              expenseDate: '2026-10-01'
+              paymentMethod: card
+      responses:
+        '201':
+          description: The created claim.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+              examples:
+                managerTier:
+                  summary: Supported currency
+                  value:
+                    id: 3538e2a0-f9cb-4d99-93bd-b5afb722ffb5
+                    employeeName: Ann
+                    description: Hotel
+                    category: lodging
+                    projectCode: PRJ-42
+                    costCenter: CC-1001
+                    notes: Conference stay
+                    amount: 250
+                    currency: EUR
+                    amountUSD: 271.74
+                    approvalTier: manager
+                    expenseDate: '2026-10-01'
+                    paymentMethod: card
+                    status: submitted
+                unsupportedCurrency:
+                  summary: Currency not in the rates file
+                  value:
+                    id: 5dff85a5-bece-4ba2-88e9-c8734f6c38d1
+                    employeeName: Bo
+                    description: Lunch
+                    category: meals
+                    projectCode: null
+                    costCenter: null
+                    notes: null
+                    amount: 1500
+                    currency: JPY
+                    amountUSD: null
+                    approvalTier: null
+                    expenseDate: '2026-10-02'
+                    paymentMethod: null
+                    status: submitted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /claims/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ClaimId'
+    get:
+      tags: [Claims]
+      operationId: getClaim
+      summary: Get a claim by id
+      responses:
+        '200':
+          description: The claim.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '404':
+          $ref: '#/components/responses/ClaimNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags: [Claims]
+      operationId: updateClaim
+      summary: Update a claim
+      description: |
+        Replaces the claim's editable fields. The same fields are required as for submitting, so
+        send the full set. `status` cannot be changed here; the existing status is always kept. The id never changes,
+        and `amountUSD` and `approvalTier` are recomputed from the new amount and currency.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimInput'
+            example:
+              employeeName: Ann
+              description: Hotel
+              category: lodging
+              projectCode: PRJ-42
+              costCenter: CC-1001
+              notes: Conference stay
+              amount: 600
+              currency: EUR
+              expenseDate: '2026-10-01'
+              paymentMethod: card
+      responses:
+        '200':
+          description: The updated claim.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+              example:
+                id: 3538e2a0-f9cb-4d99-93bd-b5afb722ffb5
+                employeeName: Ann
+                description: Hotel
+                category: lodging
+                projectCode: PRJ-42
+                costCenter: CC-1001
+                notes: Conference stay
+                amount: 600
+                currency: EUR
+                amountUSD: 652.17
+                approvalTier: finance
+                expenseDate: '2026-10-01'
+                paymentMethod: card
+                status: approved
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/ClaimNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags: [Claims]
+      operationId: deleteClaim
+      summary: Delete a claim
+      responses:
+        '204':
+          description: The claim was deleted. No body.
+        '404':
+          $ref: '#/components/responses/ClaimNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /rates/convert:
+    get:
+      tags: [Rates]
+      operationId: convertToUsd
+      summary: Convert an amount to USD
+      description: |
+        Converts `amount` in `currency` to USD using the rate in `data/exchange-rates.json`
+        (units of the currency per 1 USD), and reports the approval tier that amount would receive.
+      parameters:
+        - name: amount
+          in: query
+          required: true
+          description: Positive number with at most two decimal places.
+          schema:
+            type: number
+            exclusiveMinimum: 0
+          example: 250
+        - name: currency
+          in: query
+          required: true
+          description: 3-letter currency code, case-insensitive.
+          schema:
+            type: string
+            pattern: '^[A-Za-z]{3}$'
+          example: EUR
+      responses:
+        '200':
+          description: The conversion result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversionResult'
+              example:
+                amount: 250
+                currency: EUR
+                rate: 0.92
+                amountUSD: 271.74
+                approvalTier: manager
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: The currency is not in the exchange-rates file.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  message: 'Currency JPY is not supported. Supported currencies: USD, EUR, GBP, INR, SGD'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    ClaimId:
+      name: id
+      in: path
+      required: true
+      description: Id of the claim (a UUID).
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Category:
+      type: string
+      enum: [travel, meals, lodging, supplies, other]
+
+    PaymentMethod:
+      type: string
+      enum: [card, cash, bank transfer]
+
+    Status:
+      type: string
+      enum: [submitted, approved, rejected]
+
+    ApprovalTier:
+      type: [string, 'null']
+      enum: [auto, manager, finance, null]
+      description: |
+        Derived from `amountUSD`: `auto` under 100, `manager` from 100 up to but not including 500,
+        `finance` 500 and above. `null` when there is no USD amount.
+
+    ClaimInput:
+      type: object
+      required: [employeeName, description, category, amount, currency, expenseDate]
+      description: Fields a client may send. Unknown fields (including `amountUSD`, `approvalTier` and `status`) are ignored.
+      properties:
+        employeeName:
+          type: string
+          minLength: 1
+          description: Required, non-blank; surrounding whitespace is trimmed.
+        description:
+          type: string
+          minLength: 1
+          description: Required, non-blank; surrounding whitespace is trimmed.
+        category:
+          $ref: '#/components/schemas/Category'
+        projectCode:
+          type: [string, 'null']
+          description: Optional. Surrounding whitespace is trimmed; `null`, blank or omitted all mean no project code. Because PUT replaces the claim, omitting it on update clears any existing code.
+        costCenter:
+          type: [string, 'null']
+          description: Optional. Surrounding whitespace is trimmed; `null`, blank or omitted all mean no cost center. Because PUT replaces the claim, omitting it on update clears any existing value.
+        notes:
+          type: [string, 'null']
+          maxLength: 200
+          description: Optional short note, at most 200 characters after trimming; `null`, blank or omitted all mean no notes. Because PUT replaces the claim, omitting it on update clears any existing note.
+        amount:
+          type: number
+          exclusiveMinimum: 0
+          description: Positive JSON number (not a string) with at most two decimal places.
+        currency:
+          type: string
+          pattern: '^[A-Za-z]{3}$'
+          description: 3-letter code; stored uppercase. It need not be in the exchange-rates file.
+        expenseDate:
+          type: string
+          format: date
+          description: A real calendar date in YYYY-MM-DD format.
+        paymentMethod:
+          anyOf:
+            - $ref: '#/components/schemas/PaymentMethod'
+            - type: 'null'
+          description: Optional. `null`, blank or omitted all mean no payment method. Because PUT replaces the claim, omitting it on update clears any existing value.
+
+    Claim:
+      type: object
+      required: [id, employeeName, description, category, projectCode, costCenter, notes, amount, currency, amountUSD, approvalTier, expenseDate, paymentMethod, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        employeeName:
+          type: string
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/Category'
+        projectCode:
+          type: [string, 'null']
+          description: Optional project code; `null` when none was given.
+        costCenter:
+          type: [string, 'null']
+          description: Optional cost center; `null` when none was given.
+        notes:
+          type: [string, 'null']
+          description: Optional short note (at most 200 characters); `null` when none was given.
+        amount:
+          type: number
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        amountUSD:
+          type: [number, 'null']
+          readOnly: true
+          description: '`amount` converted to USD, rounded to two decimals; `null` if the currency has no rate.'
+        approvalTier:
+          allOf:
+            - $ref: '#/components/schemas/ApprovalTier'
+          readOnly: true
+        expenseDate:
+          type: string
+          format: date
+        paymentMethod:
+          anyOf:
+            - $ref: '#/components/schemas/PaymentMethod'
+            - type: 'null'
+          description: Optional payment method; `null` when none was given.
+        status:
+          $ref: '#/components/schemas/Status'
+
+    ConversionResult:
+      type: object
+      required: [amount, currency, rate, amountUSD, approvalTier]
+      properties:
+        amount:
+          type: number
+        currency:
+          type: string
+          description: Uppercased currency code.
+        rate:
+          type: number
+          description: Units of `currency` per 1 USD, from the rates file.
+        amountUSD:
+          type: number
+          description: '`amount / rate`, rounded to two decimals.'
+        approvalTier:
+          $ref: '#/components/schemas/ApprovalTier'
+
+    ValidationDetail:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          description: Name of the invalid field (or query parameter).
+        message:
+          type: string
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [message]
+          properties:
+            message:
+              type: string
+            details:
+              type: array
+              description: One entry per problem. Present only on validation failures.
+              items:
+                $ref: '#/components/schemas/ValidationDetail'
+
+  responses:
+    BadRequest:
+      description: |
+        Validation failed (a `details` entry per invalid field), or the request body is not valid JSON.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            validation:
+              summary: Validation failed
+              value:
+                error:
+                  message: Validation failed
+                  details:
+                    - field: category
+                      message: 'category must be one of: travel, meals, lodging, supplies, other'
+                    - field: amount
+                      message: amount must have at most two decimal places
+            invalidJson:
+              summary: Malformed JSON body
+              value:
+                error:
+                  message: Request body is not valid JSON
+
+    ClaimNotFound:
+      description: No claim has this id.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: Claim nope not found
+
+    InternalServerError:
+      description: |
+        Unexpected server error, for example the exchange-rates file is missing or contains invalid JSON.
+        The message is always generic.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              message: Internal server error
