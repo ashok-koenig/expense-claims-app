@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Claims</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main>
+    <h1>Expense Claims</h1>
+
+    <section aria-labelledby="claims-heading">
+      <h2 id="claims-heading">Claims</h2>
+      <p id="table-message" role="status"></p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Project code</th>
+              <th>Cost center</th>
+              <th>Notes</th>
+              <th class="num">Amount</th>
+              <th class="num">USD equivalent</th>
+              <th>Approval tier</th>
+              <th>Date</th>
+              <th>Payment method</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="claims-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="form-heading">
+      <h2 id="form-heading">Submit a claim</h2>
+      <form id="claim-form" novalidate>
+        <label>Employee name
+          <input name="employeeName" type="text" required>
+        </label>
+        <label>Description
+          <input name="description" type="text" required>
+        </label>
+        <label>Category
+          <select name="category" required>
+            <option value="travel">Travel</option>
+            <option value="meals">Meals</option>
+            <option value="lodging">Lodging</option>
+            <option value="supplies">Supplies</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label>Project code (optional)
+          <input name="projectCode" type="text">
+        </label>
+        <label>Cost center (optional)
+          <input name="costCenter" type="text">
+        </label>
+        <label>Notes (optional, up to 200 characters)
+          <input name="notes" type="text" maxlength="200">
+        </label>
+        <div class="field">
+          <label for="amount">Amount</label>
+          <div class="inline">
+            <input id="amount" name="amount" type="number" min="0.01" step="0.01" required>
+            <button type="button" id="convert-btn">Convert</button>
+          </div>
+          <p id="convert-result" role="status"></p>
+        </div>
+        <label>Currency
+          <input name="currency" type="text" value="USD" minlength="3" maxlength="3" pattern="[A-Za-z]{3}" required>
+        </label>
+        <label>Expense date
+          <input name="expenseDate" type="date" required>
+        </label>
+        <label>Payment method (optional)
+          <select name="paymentMethod">
+            <option value="">None</option>
+            <option value="card">Card</option>
+            <option value="cash">Cash</option>
+            <option value="bank transfer">Bank transfer</option>
+          </select>
+        </label>
+        <button type="submit">Submit claim</button>
+        <p id="form-message" role="alert"></p>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
