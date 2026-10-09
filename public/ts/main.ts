@@ -21,6 +21,7 @@ const amountInput = requireElement(form, '[name="amount"]', HTMLInputElement);
 const currencyInput = requireElement(form, '[name="currency"]', HTMLInputElement);
 const expenseDateInput = requireElement(form, '[name="expenseDate"]', HTMLInputElement);
 const paymentMethodInput = requireElement(form, '[name="paymentMethod"]', HTMLSelectElement);
+const receiptRefInput = requireElement(form, '[name="receiptRef"]', HTMLInputElement);
 
 const messageOf = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
@@ -85,6 +86,7 @@ form.addEventListener('submit', async (event) => {
     currency: currencyInput.value,
     expenseDate: expenseDateInput.value,
     paymentMethod: isPaymentMethod(paymentMethod) ? paymentMethod : null,
+    receiptRef: receiptRefInput.value.trim() || null,
   };
 
   try {

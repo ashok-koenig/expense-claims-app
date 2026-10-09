@@ -33,13 +33,15 @@ export interface Claim {
   expenseDate: string;
   /** Optional payment method; null when none was given. */
   paymentMethod: PaymentMethod | null;
+  /** Optional receipt number or document id (at most 100 characters); null when none was given. */
+  receiptRef: string | null;
   status: Status;
 }
 
 /** What the client sends to submit a claim; id, USD amount, tier and status are set by the server. */
 export type ClaimInput = Pick<
   Claim,
-  'employeeName' | 'description' | 'category' | 'projectCode' | 'costCenter' | 'notes' | 'amount' | 'currency' | 'expenseDate' | 'paymentMethod'
+  'employeeName' | 'description' | 'category' | 'projectCode' | 'costCenter' | 'notes' | 'amount' | 'currency' | 'expenseDate' | 'paymentMethod' | 'receiptRef'
 >;
 
 export interface ConversionResult {
@@ -92,6 +94,7 @@ export function isClaim(value: unknown): value is Claim {
     isNullableTier(value.approvalTier) &&
     typeof value.expenseDate === 'string' &&
     (value.paymentMethod === null || isPaymentMethod(value.paymentMethod)) &&
+    (value.receiptRef === null || typeof value.receiptRef === 'string') &&
     isStatus(value.status)
   );
 }

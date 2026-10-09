@@ -75,6 +75,7 @@ tsconfig.json          frontend compiler settings (strict)
 | `approvalTier` | string \| null | **read-only**, derived from `amountUSD`; see [Approval tiers](#approval-tiers) |
 | `expenseDate` | string | `YYYY-MM-DD`, must be a real calendar date |
 | `paymentMethod` | string \| null | optional; one of `card`, `cash`, `bank transfer`; `null`, blank or omitted is stored as `null` |
+| `receiptRef` | string \| null | optional receipt number or document id, at most 100 characters; trimmed, and blank or omitted is stored as `null` |
 | `status` | string | `submitted` (default), `approved`, `rejected` |
 
 `amountUSD` and `approvalTier` are always computed by the server. If a request includes them, they are ignored, as are any other unknown fields.
@@ -122,6 +123,7 @@ Validation errors (400) add a `details` array with one entry per problem:
 - `currency`: exactly 3 letters; it does not have to be in the rates file
 - `expenseDate`: `YYYY-MM-DD` and a real date (`2026-02-30` is rejected)
 - `paymentMethod`: optional; one of `card`, `cash`, `bank transfer` if present (`null`, blank or omitted all mean "no payment method")
+- `receiptRef`: optional; a string of at most 100 characters (after trimming) if present; `null`, blank or omitted all mean "no receipt reference"
 - `status`: optional; one of `submitted`, `approved`, `rejected`
 
 ### `GET /api/claims`
@@ -150,6 +152,7 @@ curl http://localhost:3000/api/claims
     "approvalTier": "manager",
     "expenseDate": "2026-10-01",
     "paymentMethod": "card",
+    "receiptRef": "RCPT-2026-0042",
     "status": "submitted"
   }
 ]
@@ -189,7 +192,8 @@ curl -X POST http://localhost:3000/api/claims \
     "amount": 250,
     "currency": "eur",
     "expenseDate": "2026-10-01",
-    "paymentMethod": "card"
+    "paymentMethod": "card",
+    "receiptRef": "RCPT-2026-0042"
   }'
 ```
 
@@ -210,6 +214,7 @@ curl -X POST http://localhost:3000/api/claims \
   "approvalTier": "manager",
   "expenseDate": "2026-10-01",
   "paymentMethod": "card",
+  "receiptRef": "RCPT-2026-0042",
   "status": "submitted"
 }
 ```
@@ -233,13 +238,14 @@ A claim in a currency with no rate is still accepted, but `amountUSD` and `appro
   "approvalTier": null,
   "expenseDate": "2026-10-02",
   "paymentMethod": null,
+  "receiptRef": null,
   "status": "submitted"
 }
 ```
 
 ### `PUT /api/claims/:id`
 
-Replace a claim's editable fields. It takes the same body and rules as `POST`, so all required fields must be sent. If `status` is omitted, the existing status is kept. `projectCode`, `costCenter` and `notes` are optional, but because `PUT` replaces the claim, omitting any of them clears its existing value. `id` never changes. `amountUSD` and `approvalTier` are recomputed from the new amount and currency.
+Replace a claim's editable fields. It takes the same body and rules as `POST`, so all required fields must be sent. If `status` is omitted, the existing status is kept. `projectCode`, `costCenter`, `notes` and `receiptRef` are optional, but because `PUT` replaces the claim, omitting any of them clears its existing value. `id` never changes. `amountUSD` and `approvalTier` are recomputed from the new amount and currency.
 
 ```bash
 curl -X PUT http://localhost:3000/api/claims/3538e2a0-f9cb-4d99-93bd-b5afb722ffb5 \
@@ -255,6 +261,7 @@ curl -X PUT http://localhost:3000/api/claims/3538e2a0-f9cb-4d99-93bd-b5afb722ffb
     "currency": "EUR",
     "expenseDate": "2026-10-01",
     "paymentMethod": "card",
+    "receiptRef": "RCPT-2026-0042",
     "status": "approved"
   }'
 ```
@@ -276,6 +283,7 @@ curl -X PUT http://localhost:3000/api/claims/3538e2a0-f9cb-4d99-93bd-b5afb722ffb
   "approvalTier": "finance",
   "expenseDate": "2026-10-01",
   "paymentMethod": "card",
+  "receiptRef": "RCPT-2026-0042",
   "status": "approved"
 }
 ```

@@ -8,6 +8,9 @@ const DEFAULT_STATUS = 'submitted';
 // Notes are meant to be short; the form input (public/index.html) uses the same limit.
 const NOTES_MAX_LENGTH = 200;
 
+// A receipt number or document id; the form input (public/index.html) uses the same limit.
+const RECEIPT_REF_MAX_LENGTH = 100;
+
 // Approval tiers, by amountUSD: auto < MANAGER_MIN <= manager < FINANCE_MIN <= finance.
 const TIERS = ['auto', 'manager', 'finance'];
 const MANAGER_MIN_USD = 100;
@@ -36,6 +39,7 @@ function createClaim({
   approvalTier,
   expenseDate,
   paymentMethod,
+  receiptRef,
   status,
 }) {
   return {
@@ -52,6 +56,7 @@ function createClaim({
     approvalTier: approvalTier ?? null,
     expenseDate,
     paymentMethod: paymentMethod ?? null,
+    receiptRef: receiptRef ?? null,
     status: status ?? DEFAULT_STATUS,
   };
 }
@@ -62,6 +67,7 @@ module.exports = {
   STATUSES,
   DEFAULT_STATUS,
   NOTES_MAX_LENGTH,
+  RECEIPT_REF_MAX_LENGTH,
   TIERS,
   approvalTierFor,
   createClaim,

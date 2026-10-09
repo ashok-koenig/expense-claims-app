@@ -28,6 +28,7 @@
               <th>Approval tier</th>
               <th>Date</th>
               <th>Payment method</th>
+              <th>Receipt ref</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -84,6 +85,9 @@
             <option value="cash">Cash</option>
             <option value="bank transfer">Bank transfer</option>
           </select>
+        </label>
+        <label>Receipt reference (optional, up to 100 characters)
+          <input name="receiptRef" type="text" maxlength="100">
         </label>
         <button type="submit">Submit claim</button>
         <p id="form-message" role="alert"></p>

@@ -7,6 +7,7 @@
 - **Cost center:** claims have an optional `costCenter`, with the same behavior as the project code (blank, `null` or omitted means none), shown in the table and on the submit form.
 - **Notes:** claims have an optional short `notes` field (at most 200 characters; blank, `null` or omitted means none), shown in the table and on the submit form.
 - **Payment method:** claims have an optional `paymentMethod` (`card`, `cash` or `bank transfer`; blank, `null` or omitted means none), shown in the table and on the submit form.
+- **Receipt reference:** claims have an optional `receiptRef` (a receipt number or document id, at most 100 characters; blank, `null` or omitted means none), shown in the table and on the submit form.
 
 ## [0.1.0] - 2026-10-09
 

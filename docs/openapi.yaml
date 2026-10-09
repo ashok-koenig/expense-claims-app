@@ -64,6 +64,7 @@ paths:
               currency: eur
               expenseDate: '2026-10-01'
               paymentMethod: card
+              receiptRef: RCPT-2026-0042
       responses:
         '201':
           description: The created claim.
@@ -88,6 +89,7 @@ paths:
                     approvalTier: manager
                     expenseDate: '2026-10-01'
                     paymentMethod: card
+                    receiptRef: RCPT-2026-0042
                     status: submitted
                 unsupportedCurrency:
                   summary: Currency not in the rates file
@@ -105,6 +107,7 @@ paths:
                     approvalTier: null
                     expenseDate: '2026-10-02'
                     paymentMethod: null
+                    receiptRef: null
                     status: submitted
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -154,6 +157,7 @@ paths:
               currency: EUR
               expenseDate: '2026-10-01'
               paymentMethod: card
+              receiptRef: RCPT-2026-0042
       responses:
         '200':
           description: The updated claim.
@@ -175,6 +179,7 @@ paths:
                 approvalTier: finance
                 expenseDate: '2026-10-01'
                 paymentMethod: card
+                receiptRef: RCPT-2026-0042
                 status: approved
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -319,10 +324,14 @@ components:
             - $ref: '#/components/schemas/PaymentMethod'
             - type: 'null'
           description: Optional. `null`, blank or omitted all mean no payment method. Because PUT replaces the claim, omitting it on update clears any existing value.
+        receiptRef:
+          type: [string, 'null']
+          maxLength: 100
+          description: Optional receipt number or document id, at most 100 characters after trimming; `null`, blank or omitted all mean no receipt reference. Because PUT replaces the claim, omitting it on update clears any existing value.
 
     Claim:
       type: object
-      required: [id, employeeName, description, category, projectCode, costCenter, notes, amount, currency, amountUSD, approvalTier, expenseDate, paymentMethod, status]
+      required: [id, employeeName, description, category, projectCode, costCenter, notes, amount, currency, amountUSD, approvalTier, expenseDate, paymentMethod, receiptRef, status]
       properties:
         id:
           type: string
@@ -364,6 +373,9 @@ components:
             - $ref: '#/components/schemas/PaymentMethod'
             - type: 'null'
           description: Optional payment method; `null` when none was given.
+        receiptRef:
+          type: [string, 'null']
+          description: Optional receipt number or document id (at most 100 characters); `null` when none was given.
         status:
           $ref: '#/components/schemas/Status'
 
