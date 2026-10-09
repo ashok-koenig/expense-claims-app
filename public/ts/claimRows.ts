@@ -46,6 +46,7 @@ export function toClaimRow(claim: Claim): ClaimRow {
     { text: tierLabel(claim.approvalTier) },
     { text: claim.expenseDate },
     { text: claim.paymentMethod ?? NO_VALUE },
+    { text: claim.receiptRef ?? NO_VALUE },
     { text: claim.status },
   ];
 }

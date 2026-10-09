@@ -1,5 +1,5 @@
 const HttpError = require('../utils/httpError');
-const { CATEGORIES, PAYMENT_METHODS, NOTES_MAX_LENGTH } = require('../models/claim.model');
+const { CATEGORIES, PAYMENT_METHODS, NOTES_MAX_LENGTH, RECEIPT_REF_MAX_LENGTH } = require('../models/claim.model');
 const { hasMaxTwoDecimals } = require('../utils/money');
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim() !== '';
@@ -74,12 +74,22 @@ function validateClaim(req, res, next) {
     }
   }
 
+  // Optional receipt number or document id: omitted, null, or blank all mean "no receipt reference".
+  if (body.receiptRef !== undefined && body.receiptRef !== null) {
+    if (typeof body.receiptRef !== 'string') {
+      fail('receiptRef', 'receiptRef must be a string');
+    } else if (body.receiptRef.trim().length > RECEIPT_REF_MAX_LENGTH) {
+      fail('receiptRef', `receiptRef must be at most ${RECEIPT_REF_MAX_LENGTH} characters`);
+    }
+  }
+
   if (errors.length > 0) throw new HttpError(400, 'Validation failed', errors);
 
   const projectCode = typeof body.projectCode === 'string' ? body.projectCode.trim() : '';
   const costCenter = typeof body.costCenter === 'string' ? body.costCenter.trim() : '';
   const paymentMethod = typeof body.paymentMethod === 'string' ? body.paymentMethod.trim() : '';
   const notes = typeof body.notes === 'string' ? body.notes.trim() : '';
+  const receiptRef = typeof body.receiptRef === 'string' ? body.receiptRef.trim() : '';
 
   req.body = {
     employeeName: body.employeeName.trim(),
@@ -92,6 +102,7 @@ function validateClaim(req, res, next) {
     currency: body.currency.toUpperCase(),
     expenseDate: body.expenseDate,
     paymentMethod: paymentMethod === '' ? null : paymentMethod,
+    receiptRef: receiptRef === '' ? null : receiptRef,
   };
   next();
 }
