@@ -20,6 +20,7 @@ const { valueInUsd } = require('./valuation.service');
  * @property {string} currency Uppercase 3-letter code.
  * @property {string} expenseDate Calendar date in YYYY-MM-DD format.
  * @property {PaymentMethod|null} paymentMethod Optional; null when none was given.
+ * @property {string|null} receiptRef Optional receipt number or document id (at most 100 characters); null when none was given.
  *
  * @typedef {object} Claim
  * @property {string} id
@@ -35,6 +36,7 @@ const { valueInUsd } = require('./valuation.service');
  * @property {ApprovalTier|null} approvalTier Null when amountUSD is null.
  * @property {string} expenseDate
  * @property {PaymentMethod|null} paymentMethod
+ * @property {string|null} receiptRef
  * @property {Status} status
  */
 
